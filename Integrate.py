@@ -4,6 +4,7 @@ from util import *
 import Poisson
 import argparse
 from tqdm import tqdm
+import time
 
 """
 Retrive interior movie from windsheild movie by integrating laplacian of interior movie
@@ -12,43 +13,74 @@ input: windsheild image, human's laplacian image
 output: interiror image
 """
 
-def main(target_path, laplacian_path, output_path):
+def main(target_path, laplacian_path, output_path, color):
     # read movie
-    target_movie = cv2.VideoCapture(target_path)
-    laplacian = cv2.imread(laplacian_path)
+    # target_movie = cv2.VideoCapture(target_path)
+    if color != 1:
+        target = cv2.imread(target_path, 0)
+        laplacian = cv2.imread(laplacian_path, 0)
+    else:
+        target = cv2.imread(target_path)
+        laplacian = cv2.imread(laplacian_path)
+
+    h, w = target.shape[:2]
+
 
     # get frame size
-    w = int(target_movie.get(3)) // 10
-    h = int(target_movie.get(4)) // 10
-
-    print(w, h)
-
-    laplacian = cv2.resize(laplacian, (w, h))
+    # w = int(target_movie.get(3))
+    # h = int(target_movie.get(4))
 
     # get frame rate
-    frame_rate = target_movie.get(cv2.CAP_PROP_FPS)
+    # frame_rate = target_movie.get(cv2.CAP_PROP_FPS)
 
     # get total frame
-    total_frame = int(target_movie.get(cv2.CAP_PROP_FRAME_COUNT))
+    # total_frame = int(target_movie.get(cv2.CAP_PROP_FRAME_COUNT))
 
     # set output video
-    writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (w, h))
+    # writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (w, h))
 
-    for _ in tqdm(range(total_frame)):
+    # for _ in tqdm(range(total_frame)):
         # get frame
-        target_frame = target_movie.read()[1]
-        target_frame = cv2.resize(target_frame, (h, w))
+        # target_frame = target_movie.read()[1]
+        # cv2.imshow('img', target_frame)
+        # cv2.waitKey(1)
+        # target_frame = cv2.resize(target_frame, (h, w))
 
-        # Poisson Image Editing
-        integrated_bgr = [Poisson.process(target_frame[:, :, i], laplacian[:, :, i]) for i in range(3)]
+
+    # Poisson Image Editing
+    cv2.imshow('img', target)
+    cv2.waitKey(1)
+
+    # target_frame = cv2.cvtColor(target_frame, cv2.COLOR_BGR2GRAY)
+    # laplacian = cv2.cvtColor(laplacian, cv2.COLOR_BGR2GRAY)
+
+    print(color)
+    print(type(color))
+    print(color!=1)
+
+    print('Create a poisson matrix A...')
+    A = Poisson.create_poisson_matrix(h, w)
+
+    if color!=1:
+        result = Poisson.process(target, laplacian, A)
+    else:
+        integrated_bgr = [Poisson.process(target[:, :, i], laplacian[:, :, i], A) for i in range(3)]
         result = cv2.merge(integrated_bgr)
 
-        cv2.imshow('result', result)
-        cv2.waitKey(1)
+    # writer.write(result)
 
-        writer.write(result)
+    cv2.imwrite('result.png', result)
 
-    writer.release()
+    cv2.imshow('result', result)
+    cv2.waitKey(1)
+
+    # result = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
+    result_laplacian = cv2.Laplacian(result, cv2.CV_32F)
+    cv2.imshow('laplacian', result_laplacian)
+    cv2.waitKey(0)
+
+
+    # writer.release()
 
 def main_cv2(target_path, laplacian_path, output_path):
     # read movie
@@ -87,11 +119,12 @@ def main_cv2(target_path, laplacian_path, output_path):
 
 if __name__ == '__main__':
     arg = argparse.ArgumentParser()
-    arg.add_argument('-m', '--movie', required=True, help='path to windsheild movie')
-    arg.add_argument('-l', '--laplacian', required=True, help='path to laplacian image')
-    arg.add_argument('-o', '--output', required=True, help='path to output movie')
+    arg.add_argument('-i', '--image', required=True, type=str, help='path to windsheild image')
+    arg.add_argument('-l', '--laplacian', required=True, type=str, help='path to laplacian image')
+    arg.add_argument('-o', '--output', required=True, type=str, help='path to output movie')
+    arg.add_argument('-c', '--color', default=1, type=int, help='0: grayscale 1: color')
 
     args = vars(arg.parse_args())
     
-    main(args['movie'], args['laplacian'], args['output'])
+    main(args['image'], args['laplacian'], args['output'], args['color'])
     # main_cv2(args['movie'], args['laplacian'], args['output'])

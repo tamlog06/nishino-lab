@@ -1,7 +1,10 @@
+from inspect import ArgInfo
 import cv2
 import numpy as np
-from scipy.sparse import linalg as linalg
-from scipy.sparse import lil_matrix as lil_matrix
+from scipy.sparse import linalg
+from scipy.sparse import lil_matrix
+import matplotlib.pyplot as plt
+from util import *
 
 """
 Poisson Image Editing
@@ -23,6 +26,7 @@ def create_poisson_matrix(h, w):
 
     size = h*w
     A = lil_matrix((size, size))
+    n = 0
 
     for i in range(h):
         for j in range(w):
@@ -30,17 +34,21 @@ def create_poisson_matrix(h, w):
             # number of neigbors
             Np = 0
 
-            dx = [0, 1, 0, -1]
-            dy = [1, 0, -1, 0]
+            dw = [0, 1, 0, -1]
+            dh = [1, 0, -1, 0]
 
             # find inside neigbors
-            for x, y in zip(dx, dy):
-                if i+x >= 0 and i+x < h and j+y >= 0 and j+y < w:
+            for ww, hh in zip(dw, dh):
+                if i+hh >= 0 and i+hh < h and j+ww >= 0 and j+ww < w:
                     Np += 1
-                    A[idx, (i+x)*w + (j+y)] = -1
+                    n += 1
+                    A[idx, (i+hh)*w + (j+ww)] = -1
 
             A[idx, idx] = Np
+            n += 1
 
+    print( n / size )
+    A = A.tocsr()
     return A
 
 # Create poisson b vector
@@ -48,23 +56,33 @@ def create_poission_b(laplacian) -> np.ndarray:
     return laplacian.flatten()
 
 # Poisson Image Editing
-def process(target, laplacian) -> np.ndarray:
+def process(target, laplacian, A) -> np.ndarray:
     h, w = target.shape[:2]
     # Create poisson A matrix. Ax = b.
-    print('Create poisson matrix A...')
-    A = create_poisson_matrix(h, w)
+    # print('Create a poisson matrix A...')
+    # A = create_poisson_matrix(h, w)
 
     # Create b vector
-    print('Create poisson b vector...')
+    print('Create a poisson b vector...')
     b = create_poission_b(laplacian)
+
+    # create an initial answer of x
+    x0 = target.flatten()
 
     # Solve Ax = b
     print('Solve Ax = b...')
-    x = linalg.cg(A, b)
+    x = linalg.isolve.bicg(A, b, maxiter=8, x0=x0)
+
+    # x = linalg.dsolve.spsolve(A, b)
+    y = x[0] / x[0].max() * 255
+    # y = x / x.max() * 255
+    print(y)
+    y = y.astype(np.uint8)
+    # print(x.shape)
 
     composite = np.zeros_like(target)
     for i in range(h):
         for j in range(w):
-            composite[i, j] = x[0][i*w + j]
+            composite[i, j] = y[i*w + j]
     
     return composite

@@ -13,3 +13,21 @@ def homography_transform(img, points):
     perspective_image = cv2.warpPerspective(img, mat, size)
 
     return perspective_image
+
+def gaussSeidel(A, b, x0, tol, maxiter=1e5):
+    xold = x0
+    error = 1e12
+    
+    L = np.tril(A)
+    U = A - L
+    LInv = np.linalg.inv(L)
+
+    n = 0
+    while error > tol and n < maxiter:
+        x = np.dot(LInv, b-np.dot(U, xold))
+        error = np.linalg.norm(x-xold)/np.linalg.norm(x)
+        xold = x
+        print(error)
+        n += 1
+
+    return x
