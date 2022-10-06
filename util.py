@@ -31,3 +31,9 @@ def gaussSeidel(A, b, x0, tol, maxiter=1e5):
         n += 1
 
     return x
+
+from PIL import Image
+def make_gif(im_list, fps, path):
+    duration_time = int(1000.0 / fps)
+    print("duration:{}".format(duration_time))
+    im_list[0].save(path, save_all=True, optimize=False, append_images=im_list[1:], duration=duration_time, loop=0)

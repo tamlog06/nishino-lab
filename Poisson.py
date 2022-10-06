@@ -56,7 +56,7 @@ def create_poission_b(laplacian) -> np.ndarray:
     return laplacian.flatten()
 
 # Poisson Image Editing
-def process(target, laplacian, A) -> np.ndarray:
+def process(target, laplacian, A, maxiter) -> np.ndarray:
     h, w = target.shape[:2]
     # Create poisson A matrix. Ax = b.
     # print('Create a poisson matrix A...')
@@ -71,7 +71,7 @@ def process(target, laplacian, A) -> np.ndarray:
 
     # Solve Ax = b
     print('Solve Ax = b...')
-    x = linalg.isolve.bicg(A, b, maxiter=8, x0=x0)
+    x = linalg.isolve.bicg(A, b, maxiter=maxiter, x0=x0)
 
     # x = linalg.dsolve.spsolve(A, b)
     y = x[0] / x[0].max() * 255
