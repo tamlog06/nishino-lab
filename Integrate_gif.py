@@ -19,6 +19,7 @@ def main(target_path, gt_path, output_name, gray, iter):
         print('gray mode')
         # read as gray scale
         target = cv2.imread(target_path, 0)
+        cv2.imwrite('target_gray.png', target)
         laplacian = cv2.imread(gt_path, 0)
         laplacian = cv2.Laplacian(laplacian, cv2.CV_64F)
     else:
@@ -34,17 +35,17 @@ def main(target_path, gt_path, output_name, gray, iter):
 
     print(laplacian.max(), laplacian.min())
 
-    cv2.imshow('laplacian', laplacian)
-    cv2.waitKey(1)
+    # cv2.imshow('laplacian', laplacian)
+    # cv2.waitKey(1)
 
     print('Create a poisson matrix A...')
     A = Poisson.create_poisson_matrix(h, w)
 
     # solve Poisson equation by each method below
-    solvers = ['bicg', 'bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
-    # solvers = ['bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
+    # solvers = ['bicg', 'bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
+    solvers = ['bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
     for solver in solvers:
-        print(f'Solve Poisson matrix by {solver}')
+        print(f"Solve Poisson matrix by {solver}")
         imgs = []
         imgs_laplacian_original = []
         imgs_laplacian = []

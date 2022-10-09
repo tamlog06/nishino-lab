@@ -97,10 +97,7 @@ def process(target, laplacian, A, maxiter, solver) -> np.ndarray:
     # x = x / x.max() * 255
     # x = x.astype(np.uint8)
 
-    composite = np.zeros_like(target)
-    for i in range(h):
-        for j in range(w):
-            composite[i, j] = x[i*w + j]
+    composite = np.reshape(x, (h, w))
     
     cv2.imshow('img', composite)
     cv2.waitKey(1)
