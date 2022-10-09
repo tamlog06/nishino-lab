@@ -17,11 +17,18 @@ output: integrated image
 # Create poisson matrix A
 def create_poisson_matrix(h, w):
     """
-    Create poisson matrix A
+    Create poisson matrix A.
+    Each row A satisfies the below matrix:
+        Np*fp - sum(fq) = gp, where 
+            Np: number of fp's neigbor indexes
+            fp: image's p index
+            fq: image's p index's neigbor indexes
+            gp: laplacian' p index
+        Af = g
     A is a sparse matrix, so we use lil_matrix.
     for i in range(h) and j in range(w);
-    row A[i*w+j, :] represents frame[i, j] pixel's Poisson equation.
-    A[i, i] represents the number of frame[i, j]'s neigbor pixels, and if let n the neigbor pixel of frame[i, j], A[i, n] is -1.
+    row A[i*w+j, :] represents image[i, j] pixel's Poisson equation.
+    A[i, i] represents the number of image[i, j]'s neigbor pixels, and if let n the neigbor pixel of frame[i, j], A[i, n] is -1.
     """
 
     size = h*w
@@ -51,38 +58,50 @@ def create_poisson_matrix(h, w):
     A = A.tocsr()
     return A
 
-# Create poisson b vector
-def create_poission_b(laplacian) -> np.ndarray:
-    return laplacian.flatten()
+
+
 
 # Poisson Image Editing
-def process(target, laplacian, A, maxiter) -> np.ndarray:
+def process(target, laplacian, A, maxiter, solver) -> np.ndarray:
+    """
+    input:
+        target: target image
+        laplacian: laplacian image
+        A: Poisson lil_matrix
+        maxiter: max iteration of iterative solution
+        solver: the way of iterative solution; choose one of the below
+            ['bicg', 'bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
+    output:
+        composite: integrated image
+    """
     h, w = target.shape[:2]
     # Create poisson A matrix. Ax = b.
     # print('Create a poisson matrix A...')
     # A = create_poisson_matrix(h, w)
 
     # Create b vector
-    print('Create a poisson b vector...')
-    b = create_poission_b(laplacian)
+    b = laplacian.flatten()
 
     # create an initial answer of x
     x0 = target.flatten()
 
     # Solve Ax = b
-    print('Solve Ax = b...')
-    x = linalg.isolve.bicg(A, b, maxiter=maxiter, x0=x0)
+    assert solver in ['bicg', 'bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
+    x = eval(f'linalg.isolve.{solver}')(A, b, maxiter=maxiter, x0=x0)[0]
 
-    # x = linalg.dsolve.spsolve(A, b)
-    y = x[0] / x[0].max() * 255
-    # y = x / x.max() * 255
-    print(y)
-    y = y.astype(np.uint8)
-    # print(x.shape)
+    print(x.max(), x.min())
+    x = x - x.min()
+    x = x / x.max() * 255
+    x = np.uint8(x)
+
+    # x = x / x.max() * 255
+    # x = x.astype(np.uint8)
 
     composite = np.zeros_like(target)
     for i in range(h):
         for j in range(w):
-            composite[i, j] = y[i*w + j]
+            composite[i, j] = x[i*w + j]
     
+    cv2.imshow('img', composite)
+    cv2.waitKey(1)
     return composite

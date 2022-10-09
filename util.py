@@ -37,3 +37,17 @@ def make_gif(im_list, fps, path):
     duration_time = int(1000.0 / fps)
     print("duration:{}".format(duration_time))
     im_list[0].save(path, save_all=True, optimize=False, append_images=im_list[1:], duration=duration_time, loop=0)
+
+def cv2pil(img):
+    new_image = img.copy()
+    if new_image.ndim == 2:
+        c = 'P'
+    elif new_image.shape[2] == 3:
+        new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+        c = 'RGB'
+    elif new_image.shape[2] == 4:
+        new_image= cv2.cvtColor(new_image, cv2.COLOR_BGRA2RGBA)
+        c = 'RGBA'
+    new_image = Image.fromarray(new_image).convert(c)
+    return new_image
+
