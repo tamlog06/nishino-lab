@@ -5,6 +5,7 @@ import Poisson
 import argparse
 from tqdm import tqdm
 from PIL import Image
+import os
 
 """
 Retrive interior movie from windsheild movie by integrating laplacian of interior movie
@@ -13,7 +14,7 @@ input: windsheild image, human's laplacian image
 output: interiror image
 """
 
-def main(target_path, gt_path, output_name, gray, iter):
+def main(target_path, gt_path, output_dir, gray, iter):
     # read image
     if gray:
         print('gray mode')
@@ -32,6 +33,8 @@ def main(target_path, gt_path, output_name, gray, iter):
 
     h, w = target.shape[:2]
 
+    os.makedirs(output_dir, exist_ok=True)
+
     print(laplacian.max(), laplacian.min())
 
     # cv2.imshow('laplacian', laplacian)
@@ -48,30 +51,41 @@ def main(target_path, gt_path, output_name, gray, iter):
         imgs_laplacian_original = []
         imgs_laplacian = []
 
+        result = np.copy(target)
+
         # i specify the max iteration
         for i in tqdm(range(iter[0], iter[1], iter[2])):
-            if gray:
-                result = Poisson.process(target, laplacian, A, i, solver)
+            if i == iter[0]:
+                iteration = iter[0]
             else:
-                integrated_bgr = [Poisson.process(target[:, :, i], laplacian[:, :, i], A, i, solver) for i in range(3)]
+                iteration = iter[2]
+
+            if gray:
+                # result = Poisson.process(target, laplacian, A, i, solver)
+                result = Poisson.process(result, laplacian, A, iteration, solver)
+            else:
+                integrated_bgr = [Poisson.process(result[:, :, j], laplacian[:, :, j], A, iteration, solver) for j in range(3)]
                 result = cv2.merge(integrated_bgr)
+
+            cv2.imshow('result', result)
+            cv2.waitKey(1)
 
             result_laplacian_original = cv2.Laplacian(result, cv2.CV_64F)
             result_laplacian_original = np.uint8(np.abs(result_laplacian_original))
             result_laplacian = result_laplacian_original/result_laplacian_original.max() *255
             result_laplacian = result_laplacian.astype(np.uint8)
 
-            result = cv2pil(result)
+            result_pill = cv2pil(result)
             result_laplacian_original = cv2pil(result_laplacian_original)
             result_laplacian = cv2pil(result_laplacian)
 
-            imgs.append(result)
+            imgs.append(result_pill)
             imgs_laplacian_original.append(result_laplacian_original)
             imgs_laplacian.append(result_laplacian)
 
-        output_path = f'{output_name}_{solver}.gif'
-        output_path_laplacian_original = f'{output_name}_{solver}_laplacian_original.gif'
-        output_path_laplacian = f'{output_name}_{solver}_laplacian.gif'
+        output_path = f'{output_dir}/{solver}.gif'
+        output_path_laplacian_original = f'{output_dir}/{solver}_laplacian_original.gif'
+        output_path_laplacian = f'{output_dir}/{solver}_laplacian.gif'
 
         make_gif(imgs, 2, output_path)
         make_gif(imgs_laplacian_original, 2, output_path_laplacian_original)
@@ -81,7 +95,7 @@ if __name__ == '__main__':
     arg = argparse.ArgumentParser()
     arg.add_argument('-i', '--image', required=True, type=str, help='path to windsheild image')
     arg.add_argument('-l', '--laplacian', required=True, type=str, help='path to GT image')
-    arg.add_argument('-o', '--output', required=True, type=str, help='name of output movie')
+    arg.add_argument('-o', '--output', required=True, type=str, help='dir of output movie')
     arg.add_argument('-g', '--gray', action='store_true', help='if specified, process by  grayscale')
     arg.add_argument('-s', '--iter_start', default=1, type=int, help='start iteration')
     arg.add_argument('-e', '--iter_end', default=1, type=int, help='end iteration')

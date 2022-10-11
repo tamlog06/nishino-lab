@@ -91,7 +91,7 @@ def process(target, laplacian, A, maxiter, solver) -> np.ndarray:
     assert solver in ['bicg', 'bicgstab', 'cg', 'cgs', 'gmres', 'minres', 'qmr']
     x = eval(f'linalg.isolve.{solver}')(A, b, maxiter=maxiter, x0=x0)[0]
 
-    print(x.max(), x.min())
+    # print(x.max(), x.min())
     if x.min() < 0 :
         x = x - x.min()
     x = x / x.max() * 255
@@ -99,6 +99,4 @@ def process(target, laplacian, A, maxiter, solver) -> np.ndarray:
 
     composite = np.reshape(x, (h, w))
     
-    cv2.imshow('img', composite)
-    cv2.waitKey(1)
     return composite
