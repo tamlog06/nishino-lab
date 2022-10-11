@@ -1,10 +1,10 @@
-from inspect import ArgInfo
 import cv2
 import numpy as np
 from scipy.sparse import linalg
 from scipy.sparse import lil_matrix
 import matplotlib.pyplot as plt
 from util import *
+from tqdm import tqdm
 
 """
 Poisson Image Editing
@@ -19,7 +19,7 @@ def create_poisson_matrix(h, w):
     """
     Create poisson matrix A.
     Each row A satisfies the below matrix:
-        Np*fp - sum(fq) = gp, where 
+        sum(fq) - Np*fp  = gp, where 
             Np: number of fp's neigbor indexes
             fp: image's p index
             fq: image's p index's neigbor indexes
@@ -35,7 +35,7 @@ def create_poisson_matrix(h, w):
     A = lil_matrix((size, size))
     n = 0
 
-    for i in range(h):
+    for i in tqdm(range(h)):
         for j in range(w):
             idx = i*w + j
             # number of neigbors
@@ -47,9 +47,11 @@ def create_poisson_matrix(h, w):
             # find inside neigbors
             for ww, hh in zip(dw, dh):
                 if i+hh >= 0 and i+hh < h and j+ww >= 0 and j+ww < w:
-                    Np += 1
+                    # Np += 1
+                    Np -= 1
                     n += 1
-                    A[idx, (i+hh)*w + (j+ww)] = -1
+                    # A[idx, (i+hh)*w + (j+ww)] = -1
+                    A[idx, (i+hh)*w + (j+ww)] = 1
 
             A[idx, idx] = Np
             n += 1
@@ -90,12 +92,10 @@ def process(target, laplacian, A, maxiter, solver) -> np.ndarray:
     x = eval(f'linalg.isolve.{solver}')(A, b, maxiter=maxiter, x0=x0)[0]
 
     print(x.max(), x.min())
-    x = x - x.min()
+    if x.min() < 0 :
+        x = x - x.min()
     x = x / x.max() * 255
     x = np.uint8(x)
-
-    # x = x / x.max() * 255
-    # x = x.astype(np.uint8)
 
     composite = np.reshape(x, (h, w))
     
